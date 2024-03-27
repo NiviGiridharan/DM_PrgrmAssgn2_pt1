@@ -4,15 +4,10 @@ os.environ['OMP_NUM_THREADS'] = '1'
 import myplots as myplt
 import time
 import warnings
-import math
-import utils as u
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 from matplotlib.backends.backend_pdf import PdfPages
-from scipy.cluster.hierarchy import dendrogram, linkage
-from sklearn.cluster import AgglomerativeClustering
-import pickle
 from sklearn import cluster, datasets, mixture
 from sklearn.cluster import KMeans
 from sklearn.datasets import make_blobs, make_circles, make_moons
@@ -20,6 +15,13 @@ from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import StandardScaler
 from itertools import cycle, islice
 import scipy.io as io
+from scipy.cluster.hierarchy import dendrogram, linkage
+
+# import plotly.figure_factory as ff
+import math
+from sklearn.cluster import AgglomerativeClustering
+import pickle
+import utils as u
 
 
 # ----------------------------------------------------------------------
@@ -36,13 +38,15 @@ In the first task, you will explore how k-Means perform on datasets with diverse
 #FUNCTION fit_kmeans - Part B
 def fit_kmeans(data, n_clusters):
     
-    #Normalize Data
+    #STANDARDIZE DATA
     scaler = StandardScaler()
-    scaleddata = scaler.fit_transform(data)
+    scaled_data = scaler.fit_transform(data)
     
-    #Train KMeans Model
+    #FIT KMEANS MODEL
     kmeans = KMeans(n_clusters=n_clusters, init='random', random_state=42)
-    kmeans.fit(scaleddata)
+    kmeans.fit(scaled_data)
+    
+    #RETURNING PREDICTED LABELS
     return kmeans.labels_
 
 
@@ -57,18 +61,17 @@ def compute():
     # 'nc', 'nm', 'bvv', 'add', 'b'. keys: 'nc', 'nm', 'bvv', 'add', 'b' (abbreviated datasets)
     dct = answers["1A: datasets"] = {}
     
-    #Generating Datasets
+    #LOADING DATASETS
     nc = make_circles(n_samples=100, factor=0.5, noise=0.05, random_state=42)
     nm = make_moons(n_samples=100, noise=0.05, random_state=42)
     bvv = make_blobs(n_samples=100, cluster_std=[1.0, 2.5, 0.5], random_state=42)
     add = make_blobs(n_samples=100, random_state=42)
     b = make_blobs(n_samples=100, random_state=42)
     
-    #Transforming Data for Anisotropic Transformation
+    #TRANSFORMATION FOR ANISOTROPICLY DATA
     transformation = [[0.6, -0.6], [-0.4, 0.8]]
     add = (np.dot(add[0], transformation), add[1])
     
-    #Storing Generated Datasets in a Dictionary
     answers["1A: datasets"] = {
         'nc': nc,
         'nm' : nm,
@@ -82,7 +85,7 @@ def compute():
    B. Write a function called fit_kmeans that takes dataset (before any processing on it), i.e., pair of (data, label) Numpy arrays, and the number of clusters as arguments, and returns the predicted labels from k-means clustering. Use the init='random' argument and make sure to standardize the data (see StandardScaler transform), prior to fitting the KMeans estimator. This is the function you will use in the following questions. 
     """
     
-    # dct value:  the `fit_kmeans` function
+    # dct value:  the fit_kmeans function
     dct = answers["1B: fit_kmeans"] = fit_kmeans
     
 
@@ -93,24 +96,22 @@ def compute():
     """
 
     
-    #Accessing Datasets from 'answers' Dictionary for Plotting
+    #ACCESS DATASET FROM answers DICTIONARY FOR THE PLOT
     datasets = answers["1A: datasets"]
     
-    #Specifying K-Values
+    #K-VALUES TO USE
     k_values = [2, 3, 5, 10]
-    # Dictionary to Store KMeans Results
-    kmeans_res = {}
-    # Iterating through Datasets
-    for dataset_name, (data, true_labels) in datasets.items():
-        kmeans_ds_res = {}
-        for k in k_values:
-            # Fitting KMeans Model
-            kmeans_labels = fit_kmeans(data, k)
-            kmeans_ds_res[k] = kmeans_labels
-        # Storing KMeans Results for Current Dataset
-        kmeans_res[dataset_name] = ((data, true_labels), kmeans_ds_res)
     
-    myplt.plot_part1C(kmeans_res, 'Q1c_kmeans_clusters_evalplots_NG23F.pdf')
+    kmeans_results = {}
+    
+    for dataset_name, (data, true_labels) in datasets.items():
+        kmeans_results_for_dataset = {}
+        for k in k_values:
+            kmeans_labels = fit_kmeans(data, k)
+            kmeans_results_for_dataset[k] = kmeans_labels
+        kmeans_results[dataset_name] = ((data, true_labels), kmeans_results_for_dataset)
+    
+    myplt.plot_part1C(kmeans_results, 'Q1c_kmeans_clusters_evalplots_NG23F.pdf')
     
     # dct value: return a dictionary of one or more abbreviated dataset names (zero or more elements) 
     # and associated k-values with correct clusters.  key abbreviations: 'nc', 'nm', 'bvv', 'add', 'b'. 
@@ -130,32 +131,27 @@ def compute():
     Create a pdf of the plots and return in your report. 
     """
     
-    #Specifying New K-Values for Sensitivity Analysis
+    #K-VALUES TO USE
     new_k_values = [2, 3]
     
-    # Dictionary to Store Sensitivity Analysis Results
-    sensitivityanalysis = {}
+    sensitivity_analysis = {}
     
-    # Iterating through Datasets
     for dataset_name, (data, true_labels) in datasets.items():
         new_kmeans_results_for_dataset = {}
         for new_k in new_k_values:
             all_labels_for_current_new_k = []
-            # Running KMeans with Different Initializations
             for init in range(10):
                 new_kmeans_labels = fit_kmeans(data, new_k)
                 all_labels_for_current_new_k.append(new_kmeans_labels)
-            # Storing Results for Current New K
             new_kmeans_results_for_dataset[new_k] = all_labels_for_current_new_k
-        # Storing Sensitivity Analysis Results for Current Dataset
-        sensitivityanalysis[dataset_name] = ((data, true_labels), new_kmeans_results_for_dataset)
+        sensitivity_analysis[dataset_name] = ((data, true_labels), new_kmeans_results_for_dataset)
         
-    num_datasets = len(sensitivityanalysis)
+    num_datasets = len(sensitivity_analysis)
     num_k_values = len(new_k_values)
     
     fig, axes = plt.subplots(num_k_values, num_datasets, figsize=(15, num_k_values * 3), squeeze=False)
     
-    for i, (dataset_name, (data, k_results)) in enumerate(sensitivityanalysis.items()):
+    for i, (dataset_name, (data, k_results)) in enumerate(sensitivity_analysis.items()):
         for j, k in enumerate(new_k_values):
             ax = axes[j, i]
             labels_list = k_results[k]
@@ -178,8 +174,8 @@ def compute():
 
 
 # ----------------------------------------------------------------------
-if __name__ == "__main__":
+if _name_ == "_main_":
     answers = compute()
 
     with open("part1.pkl", "wb") as f:
-        pickle.dump(answers, f)
+        pickle.dump(answers, f)

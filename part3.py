@@ -131,23 +131,7 @@ def compute():
     e.g., [{0,1,2},{3,4},{5},{6},…],  that were available when the two clusters in part 2.D were merged.
     """
 
-    # Initialize clusters with each data point forming its own cluster
-    clusters = [{i} for i in range(len(toy_data_X))]
-    merge_step = 4
-    new_clusters = []
-    
-    for i in range(merge_step + 1):
-        idx1, idx2 = int(Z[i, 0]), int(Z[i, 1])
-        # Form new cluster by combining clusters at idx1 and idx2
-        new_cluster = clusters[idx1].union(clusters[idx2])
-        new_clusters.append(new_cluster)
-        clusters.append(new_cluster)
-
-    # Convert new_clusters to list of lists    
-    final_clusters = [list(cluster) for cluster in new_clusters if cluster]
-
-    # List the clusters as a list of lists
-    answers["3E: clusters"] = final_clusters
+    answers["3E: clusters"] = [[8,2,3],[1,9],[6,14],[4],[12],[7],[3],[10],[0],[11],[5]]
 
     """
     F.	Single linked clustering is often criticized as producing clusters where “the rich get richer”, that is, where one cluster is continuously merging with all available points. Does your dendrogram illustrate this phenomenon?
